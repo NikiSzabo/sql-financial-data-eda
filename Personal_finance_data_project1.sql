@@ -174,60 +174,45 @@ SELECT Month, SUM(`Debit/Credit`) AS Income
 FROM finance_data
 WHERE `Income/Expense` = 'Income'
 GROUP BY Month
-ORDER BY Income DESC;
+ORDER BY Income DESC
+LIMIT 1;
 
 #Lowest Month Income
 SELECT Month, SUM(`Debit/Credit`) AS Income
 FROM finance_data
 WHERE `Income/Expense` = 'Income'
 GROUP BY Month
-ORDER BY Income ASC;
+ORDER BY Income ASC
+LIMIT 1;
 
 #Highest Month Expense
 SELECT Month, SUM(`Debit/Credit`) AS Expense
 FROM finance_data
 WHERE `Income/Expense` = 'Expense'
 GROUP BY Month
-ORDER BY Expense DESC;
+ORDER BY Expense DESC
+LIMIT 1;
 
 #Lowest Month Expense
 SELECT Month, SUM(`Debit/Credit`) AS Expense
 FROM finance_data
 WHERE `Income/Expense` = 'Expense'
 GROUP BY Month
-ORDER BY Expense ASC;
+ORDER BY Expense ASC
+LIMIT 1;
 
-WITH monthly_summary AS (
-  SELECT
-    Month,
-    SUM(CASE WHEN `Income/Expense` = 'Income' THEN `Debit/Credit` ELSE 0 END) AS Total_Income,
-    SUM(CASE WHEN `Income/Expense` = 'Expense' THEN `Debit/Credit` ELSE 0 END) AS Total_Expense
-  FROM finance_data
-  GROUP BY Month
-)
-SELECT
-  (SELECT Month FROM monthly_summary ORDER BY Total_Income DESC LIMIT 1) AS Highest_Income_Month,
-  (SELECT Month FROM monthly_summary ORDER BY Total_Income ASC LIMIT 1) AS Lowest_Income_Month,
-  (SELECT Month FROM monthly_summary ORDER BY Total_Expense DESC LIMIT 1) AS Highest_Expense_Month,
-  (SELECT Month FROM monthly_summary ORDER BY Total_Expense ASC LIMIT 1) AS Lowest_Expense_Month;
 
 #Are there unusually large or suspicious transactions? -- ==========================
-WITH stats AS (
-  SELECT
-    AVG(ABS(`Debit/Credit`)) AS avg_amount,
-    STDDEV(ABS(`Debit/Credit`)) AS std_dev
-  FROM finance_data
-),
-flagged AS (
-  SELECT *,
-         ABS(`Debit/Credit`) AS abs_amount
-  FROM finance_data
-)
-SELECT f.*
-FROM flagged f
-JOIN stats s
-  ON f.abs_amount > s.avg_amount + 2 * s.std_dev
-ORDER BY f.abs_amount DESC;
+SELECT 
+  *,
+  ABS(`Debit/Credit`) AS abs_amount
+FROM finance_data
+WHERE 
+  ABS(`Debit/Credit`) > (
+    SELECT AVG(ABS(`Debit/Credit`)) + 2 * STDDEV(ABS(`Debit/Credit`))
+    FROM finance_data
+  )
+ORDER BY abs_amount DESC;
 
 #What is the average transaction amount by type and category? -- ==========================
 SELECT Category, `Income/Expense`, ROUND(AVG(`Debit/Credit`),1) AS avg_transaction
